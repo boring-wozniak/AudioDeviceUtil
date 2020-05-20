@@ -1,15 +1,18 @@
+import CoreAudio
 import XCTest
 @testable import AudioDeviceUtil
 
 final class AudioDeviceUtilTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(AudioDeviceUtil().text, "Hello, World!")
+    func testToPropertyAddress() {
+        let selector = AudioObjectPropertySelector(kAudioObjectSystemObject)
+        let result = toPropertyAddress(selector: selector)
+
+        XCTAssertEqual(result.mSelector, selector)
+        XCTAssertEqual(result.mScope, DefaultScope)
+        XCTAssertEqual(result.mElement, DefaultElement)
     }
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testToPropertyAddress", testToPropertyAddress),
     ]
 }
