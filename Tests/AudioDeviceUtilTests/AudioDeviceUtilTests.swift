@@ -12,18 +12,26 @@ final class AudioDeviceUtilTests: XCTestCase {
         XCTAssertEqual(result.mElement, DefaultElement)
     }
     
-    func testGetPropertyDataSize() {
-        let result = getPropertyDataSize(
-            objectID: kAudioObjectSystemObject,
-            selector: kAudioHardwarePropertyDevices
-        )
+    func testGetObjectIDOfEveryDevice() {
+        let result = getObjectIDOfEveryDevice()
 
+        XCTAssertNotNil(result.ids)
+        XCTAssertNotEqual(result.ids!.count, 0)
         XCTAssertEqual(result.status, noErr)
-        XCTAssertNotNil(result.size)
     }
+    
+//    func testGetPropertyDataSize() {
+//        let result = getPropertyDataSize(
+//            objectID: kAudioObjectSystemObject,
+//            selector: kAudioHardwarePropertyDevices
+//        )
+//
+//        XCTAssertEqual(result.status, noErr)
+//        XCTAssertNotNil(result.size)
+//    }
 
     static var allTests = [
         ("testToPropertyAddress", testToPropertyAddress),
-        ("testGetPropertyDataSize", testGetPropertyDataSize),
+//        ("testGetPropertyDataSize", testGetPropertyDataSize),
     ]
 }
