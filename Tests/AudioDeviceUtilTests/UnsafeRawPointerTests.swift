@@ -3,6 +3,15 @@ import XCTest
 
 class UnsafeRawPointerTests: XCTestCase {
 
+    func assertEqualAndNotSame<T: Equatable>(_ expected: T, _ actual: T) {
+        XCTAssertEqual(expected, actual)
+        XCTAssertTrue(expected as AnyObject !== actual as AnyObject)
+    }
+
+    func assertSame<T: Equatable>(_ expected: T, _ actual: T) {
+        XCTAssertTrue(expected as AnyObject === actual as AnyObject)
+    }
+
     func testAsArray() throws {
         let expected = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
 
@@ -10,7 +19,7 @@ class UnsafeRawPointerTests: XCTestCase {
         let pointer = UnsafeRawPointer(expected)
         let actual = pointer.asArray(of: Int.self, size: UInt32(size))
 
-        XCTAssertEqual(expected, actual)
+        assertEqualAndNotSame(expected, actual)
     }
 
     func testAsCString() throws {
@@ -20,7 +29,7 @@ class UnsafeRawPointerTests: XCTestCase {
         let pointer = UnsafeRawPointer(expected)
         let actual = pointer.asCString(size: UInt32(expected.count))
 
-        XCTAssertEqual(expected, actual)
+        assertEqualAndNotSame(expected, actual)
     }
 
     func testAsCFString() throws {
@@ -30,6 +39,9 @@ class UnsafeRawPointerTests: XCTestCase {
         let actual = pointer.asCFString()
 
         XCTAssertEqual(expected, actual)
+
+        // TODO: Think about this behaviour again
+        assertSame(expected, actual)
     }
 
 }
