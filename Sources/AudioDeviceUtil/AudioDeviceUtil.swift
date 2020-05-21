@@ -5,28 +5,39 @@ let DefaultScope = kAudioObjectPropertyScopeGlobal
 let DefaultElement = kAudioObjectPropertyElementMaster
 let SystemObjectID = AudioObjectID(kAudioObjectSystemObject)
 
-struct AudioDevice {
+struct PropertyAddress {
+    static let everyObjectID = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
+    static let deviceUID = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
+    static let deviceName = toPropertyAddress(selector: kAudioDevicePropertyDeviceName)
+}
 
-    static let allObjectIDsPropertyAddress = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
-    static let uidPropertyAddress = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
-    static let namePropertyAddress = toPropertyAddress(selector: kAudioDevicePropertyDeviceName)
+// TODO: Make it generic
+struct Property {
 
-    static func getPropertySize(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> UInt32 {
+    static let everyObjectID = Property(address: PropertyAddress.everyObjectID)
+    static let deviceUID = Property(address: PropertyAddress.deviceUID)
+    static let deviceName = Property(address: PropertyAddress.deviceName)
+
+    let address: AudioObjectPropertyAddress
+
+    func getDataSize(objectID: AudioObjectID) throws -> UInt32 {
         var size: UInt32 = 0
 
-        let status = AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
+        var addressVar = address // ¯\_(ツ)_/¯
+        let status = AudioObjectGetPropertyDataSize(objectID, &addressVar, 0, nil, &size)
         guard status == noErr else {
             throw MyError.Error(status: status)
         }
 
         return size
     }
-    
-    static func getProperty(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
-        var size = try getPropertySize(objectID: objectID, address: &address)
 
+    func getRawData(objectID: AudioObjectID) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+        var size = try getDataSize(objectID: objectID)
+
+        var addressVar = address // ¯\_(ツ)_/¯
         let data = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
-        let status = AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, data)
+        let status = AudioObjectGetPropertyData(objectID, &addressVar, 0, nil, &size, data)
 
         guard status == noErr else {
             throw MyError.Error(status: status)
@@ -35,15 +46,32 @@ struct AudioDevice {
         return (data, size)
     }
 
-    static func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
-        var address = allObjectIDsPropertyAddress
-        let (data, size) = try getProperty(objectID: SystemObjectID, address: &address)
-
+    func getDataAsArray<Element>(of: Element.Type, objectID: AudioObjectID) throws -> [Element] {
+        let (data, size) = try getRawData(objectID: objectID)
         return data.asArray(size: size)
+    }
+
+    func getDataAsCString(objectID: AudioObjectID) throws -> UnsafeMutablePointer<CChar> {
+        let (data, size) = try getRawData(objectID: objectID)
+        return data.asCString(size: size)
+    }
+
+    func getDataAsCFString(objectID: AudioObjectID) throws -> CFString {
+        let (data, _) = try getRawData(objectID: objectID)
+        return data.asCFString()
+    }
+
+}
+
+
+struct AudioDevice {
+
+    static func getEveryObjectID() throws -> [AudioObjectID] {
+        try Property.everyObjectID.getDataAsArray(of: AudioObjectID.self, objectID: SystemObjectID)
     }
     
     static var all: [AudioDevice]? {
-        if let ids = try? getObjectIDOfEveryDevice() {
+        if let ids = try? Property.everyObjectID.getDataAsArray(of: AudioObjectID.self, objectID: SystemObjectID) {
             return ids.map({ AudioDevice(objectID: $0) })
         }
 
@@ -52,29 +80,17 @@ struct AudioDevice {
 
     let objectID: AudioObjectID
 
-    func getPropertySize(address: inout AudioObjectPropertyAddress) throws -> UInt32 {
-        try AudioDevice.getPropertySize(objectID: objectID, address: &address)
-    }
-
-    func getProperty(address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
-        try AudioDevice.getProperty(objectID: objectID, address: &address)
-    }
-
     var uid: String? {
-        var address = AudioDevice.uidPropertyAddress
-
-        if let (data, _) = try? getProperty(address: &address) {
-            return data.asString()
+        if let data = try? Property.deviceUID.getDataAsCFString(objectID: objectID) {
+            return String(data as NSString)
         }
 
         return nil
     }
 
     var name: String? {
-        var address = AudioDevice.namePropertyAddress
-
-        if let (data, size) = try? getProperty(address: &address) {
-            return data.asString2(size: size)
+        if let data = try? Property.deviceName.getDataAsCString(objectID: objectID) {
+            return String(cString: data)
         }
 
         return nil
@@ -124,7 +140,7 @@ func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
 
 extension UnsafeMutableRawPointer {
 
-    func asArray<T>(size: UInt32) -> [T] {
+    func asArray<T>(size: UInt32, of: T.Type=T.self) -> [T] {
         let numberOfElements = Int(size) / MemoryLayout<T>.size
         let typedSelf = bindMemory(to: T.self, capacity: numberOfElements)
 
@@ -143,6 +159,16 @@ extension UnsafeMutableRawPointer {
         let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
         let typedSelf = bindMemory(to: CChar.self, capacity: numberOfCharacters)
         return String.init(cString: typedSelf)
+    }
+    
+    func asCString(size: UInt32) -> UnsafeMutablePointer<CChar> {
+        let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
+        return bindMemory(to: CChar.self, capacity: numberOfCharacters)
+    }
+    
+    func asCFString() -> CFString {
+        let typedSelf = bindMemory(to: CFString.self, capacity: 1)
+        return typedSelf.pointee
     }
 
 }

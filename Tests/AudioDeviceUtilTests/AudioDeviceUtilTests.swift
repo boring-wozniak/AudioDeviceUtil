@@ -19,9 +19,8 @@ final class AudioDeviceUtilTests: XCTestCase {
     }
     
     func testGetDeviceUID() throws {
-        if let devices = AudioDevice.all {
-            devices.forEach({ print("\($0.uid) -> \($0.name)") })
-        }
+        let t: AudioDeviceUtilTests.Type = type(of: self)
+        print(Mirror(reflecting: type(of: self)).children)
     }
     
 //    func testGetPropertyDataSize() {
