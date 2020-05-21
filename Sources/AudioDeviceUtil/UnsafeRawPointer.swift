@@ -11,8 +11,7 @@ extension UnsafeRawPointer {
     }
 
     func asCString(size: UInt32) -> CString {
-        let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
-        return bindMemory(to: CChar.self, capacity: numberOfCharacters)
+        asArray(size: size)
     }
 
     func asCFString() -> CFString {

@@ -12,5 +12,15 @@ class UnsafeRawPointerTests: XCTestCase {
 
         XCTAssertEqual(expected, actual)
     }
+    
+    func testAsCString() throws {
+        let expected = "This exact string should be returned"
+            .cString(using: String.Encoding.ascii)!
+
+        let pointer = UnsafeRawPointer(expected)
+        let actual = pointer.asCString(size: UInt32(expected.count))
+
+        XCTAssertEqual(expected, actual)
+    }
 
 }
