@@ -19,8 +19,8 @@ final class AudioDeviceUtilTests: XCTestCase {
     }
     
     func testGetDeviceUID() throws {
-        let result = try getDeviceUID(objectID: 79)
-        print("Device UID is '\(result)'")
+        let result = try getDeviceName(objectID: 79)
+        print("Device name is '\(result)'")
     }
     
 //    func testGetPropertyDataSize() {

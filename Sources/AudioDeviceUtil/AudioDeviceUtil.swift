@@ -62,10 +62,22 @@ extension UnsafeMutableRawPointer {
         return String.init(typedSelf.pointee as NSString)
     }
 
+    func asString2(size: UInt32) -> String {
+        let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
+        let typedSelf = bindMemory(to: CChar.self, capacity: numberOfCharacters)
+        return String.init(cString: typedSelf)
+    }
+
 }
 
 func getDeviceUID(objectID: AudioObjectID) throws -> String {
     var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
     let (data, _) = try getRawPropertyData(objectID: objectID, address: &address)
     return data.asString()
+}
+
+func getDeviceName(objectID: AudioObjectID) throws -> String {
+    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceName)
+    let (data, size) = try getRawPropertyData(objectID: objectID, address: &address)
+    return data.asString2(size: size)
 }
