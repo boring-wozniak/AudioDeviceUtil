@@ -1,13 +1,13 @@
 import CoreAudio
 import Foundation
 
-let DefaultScope = kAudioObjectPropertyScopeGlobal
-let DefaultElement = kAudioObjectPropertyElementMaster
+let GlobalScope = kAudioObjectPropertyScopeGlobal
+let MasterElement = kAudioObjectPropertyElementMaster
 let SystemObjectID = AudioObjectID(kAudioObjectSystemObject)
 
 // When dealing with `AudioObjectProperty`s, `AudioObject` prefix is implicitly assumed
 func toPropertyAddress(selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
-    AudioObjectPropertyAddress(mSelector: selector, mScope: DefaultScope, mElement: DefaultElement)
+    AudioObjectPropertyAddress(mSelector: selector, mScope: GlobalScope, mElement: MasterElement)
 }
 
 struct PropertyAddress {
