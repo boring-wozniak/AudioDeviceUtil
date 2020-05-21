@@ -1,4 +1,5 @@
 import CoreAudio
+import Foundation
 
 let DefaultScope = kAudioObjectPropertyScopeGlobal
 let DefaultElement = kAudioObjectPropertyElementMaster
@@ -9,27 +10,57 @@ func toPropertyAddress(selector: AudioObjectPropertySelector) -> AudioObjectProp
     AudioObjectPropertyAddress(mSelector: selector, mScope: DefaultScope, mElement: DefaultElement)
 }
 
-// TODO: Maybe it will be better to return UInt32 instead
-func getPropertyDataSize(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) -> (size: UInt32?, status: OSStatus) {
-    var result: UInt32 = 0
-
-    let status = AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &result)
-
-    return (status == noErr ? result : nil, status)
+enum MyError: Error {
+    case Error(status: OSStatus)
 }
 
-func getObjectIDOfEveryDevice() -> (ids: [AudioObjectID]?, status: OSStatus) {
-    var address = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
+func getPropertyDataSize(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> UInt32 {
+    var size: UInt32 = 0
 
-    let dataSizeResult = getPropertyDataSize(objectID: SystemObjectID, address: &address)
-    if var dataSize = dataSizeResult.size {
-        let numberOfDevices = Int(dataSize) / MemoryLayout<AudioObjectID>.size
-        var objectIDs = Array.init(repeating: AudioObjectID(), count: numberOfDevices)
-
-        let dataStatus = AudioObjectGetPropertyData(SystemObjectID, &address, 0, nil, &dataSize, &objectIDs)
-        
-        return (dataStatus == noErr ? objectIDs : nil, dataStatus)
+    let status = AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
+    guard status == noErr else {
+        throw MyError.Error(status: status)
     }
 
-    return (nil, dataSizeResult.status)
+    return size
+}
+
+func getRawPropertyData(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+    var size = try getPropertyDataSize(objectID: objectID, address: &address)
+
+    let data = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
+    let status = AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, data)
+
+    guard status == noErr else {
+        throw MyError.Error(status: status)
+    }
+
+    return (data, size)
+}
+
+func getPropertyData<T>(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> [T] {
+    let (rawData, size) = try getRawPropertyData(objectID: objectID, address: &address)
+    defer {
+        rawData.deallocate()
+    }
+    let numberOfElements = Int(size) / MemoryLayout<T>.size
+    let typedData = rawData.bindMemory(to: T.self, capacity: numberOfElements)
+    return (0 ..< numberOfElements).map({ typedData[$0] })
+}
+
+func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
+    var address = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
+    return try getPropertyData(objectID: SystemObjectID, address: &address)
+}
+
+func getDeviceUID(objectID: AudioObjectID) -> (uid: String?, status: OSStatus) {
+//    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
+//    let dataSizeResult = getPropertyDataSize(objectID: objectID, address: &address)
+//    if var dataSize = dataSizeResult.size {
+//        var dataResult = UnsafeMutablePointer<CFString>.allocate(capacity: Int(dataSize))
+//        let dataStatus = AudioObjectGetPropertyData(objectID, &address, 0, nil, &dataSize, &dataResult)
+//        return (dataStatus == noErr ? String.init(dataResult.pointee as NSString) : nil, dataStatus)
+//    }
+//    return (nil, dataSizeResult.status)
+    return (nil, noErr)
 }

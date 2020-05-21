@@ -12,12 +12,15 @@ final class AudioDeviceUtilTests: XCTestCase {
         XCTAssertEqual(result.mElement, DefaultElement)
     }
     
-    func testGetObjectIDOfEveryDevice() {
-        let result = getObjectIDOfEveryDevice()
-
-        XCTAssertNotNil(result.ids)
-        XCTAssertNotEqual(result.ids!.count, 0)
-        XCTAssertEqual(result.status, noErr)
+    func testGetObjectIDOfEveryDevice() throws {
+        let result = try getObjectIDOfEveryDevice()
+        print(result)
+        XCTAssertTrue(result.count > 0)
+    }
+    
+    func testGetDeviceUID() {
+        let result = getDeviceUID(objectID: 79)
+        print(result)
     }
     
 //    func testGetPropertyDataSize() {
