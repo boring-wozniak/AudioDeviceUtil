@@ -16,6 +16,10 @@ struct AudioDevice {
         return nil
     }
 
+    static func findBy(name: String) throws -> AudioDevice? {
+        all?.first(where: { $0.name == name })
+    }
+
     let objectID: AudioObjectID
 
     var uid: String? {

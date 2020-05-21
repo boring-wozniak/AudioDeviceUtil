@@ -3,8 +3,8 @@ import XCTest
 @testable import AudioDeviceUtil
 
 final class AudioDeviceUtilTests: XCTestCase {
-    func testToPropertyAddress() {
-        
+    func testToPropertyAddress() throws {
+        print(try AudioDevice.findBy(name: "Soundflower (2ch)")?.uid)
     }
     
     func testGetObjectIDOfEveryDevice() throws {
