@@ -4,18 +4,11 @@ import XCTest
 
 final class AudioDeviceUtilTests: XCTestCase {
     func testToPropertyAddress() {
-        let selector = kAudioHardwarePropertyDevices
-        let result = toPropertyAddress(selector: selector)
-
-        XCTAssertEqual(result.mSelector, selector)
-        XCTAssertEqual(result.mScope, DefaultScope)
-        XCTAssertEqual(result.mElement, DefaultElement)
+        
     }
     
     func testGetObjectIDOfEveryDevice() throws {
-        let result = try getObjectIDOfEveryDevice()
-        print(result)
-        XCTAssertTrue(result.count > 0)
+        
     }
     
     func testGetDeviceUID() throws {

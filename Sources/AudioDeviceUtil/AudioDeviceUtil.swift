@@ -14,13 +14,22 @@ struct PropertyAddress {
 // TODO: Make it generic
 struct Property {
 
-    static let everyObjectID = Property(address: PropertyAddress.everyObjectID)
-    static let deviceUID = Property(address: PropertyAddress.deviceUID)
-    static let deviceName = Property(address: PropertyAddress.deviceName)
+    static func everyObjectID(of id: AudioObjectID) -> Property {
+        Property(objectID: id, address: PropertyAddress.everyObjectID)
+    }
 
+    static func deviceUID(of id: AudioObjectID) -> Property {
+        Property(objectID: id, address: PropertyAddress.deviceUID)
+    }
+
+    static func deviceName(of id: AudioObjectID) -> Property {
+        Property(objectID: id, address: PropertyAddress.deviceName)
+    }
+
+    let objectID: AudioObjectID
     let address: AudioObjectPropertyAddress
 
-    func getDataSize(objectID: AudioObjectID) throws -> UInt32 {
+    func getDataSize() throws -> UInt32 {
         var size: UInt32 = 0
 
         var addressVar = address // ¯\_(ツ)_/¯
@@ -32,8 +41,8 @@ struct Property {
         return size
     }
 
-    func getRawData(objectID: AudioObjectID) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
-        var size = try getDataSize(objectID: objectID)
+    func getRawData() throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+        var size = try getDataSize()
 
         var addressVar = address // ¯\_(ツ)_/¯
         let data = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
@@ -46,32 +55,32 @@ struct Property {
         return (data, size)
     }
 
-    func getDataAsArray<Element>(of: Element.Type, objectID: AudioObjectID) throws -> [Element] {
-        let (data, size) = try getRawData(objectID: objectID)
+    func getDataAsArray<Element>(of: Element.Type) throws -> [Element] {
+        let (data, size) = try getRawData()
         return data.asArray(size: size)
     }
 
-    func getDataAsCString(objectID: AudioObjectID) throws -> UnsafeMutablePointer<CChar> {
-        let (data, size) = try getRawData(objectID: objectID)
+    func getDataAsCString() throws -> CString {
+        let (data, size) = try getRawData()
         return data.asCString(size: size)
     }
 
-    func getDataAsCFString(objectID: AudioObjectID) throws -> CFString {
-        let (data, _) = try getRawData(objectID: objectID)
+    func getDataAsCFString() throws -> CFString {
+        let (data, _) = try getRawData()
         return data.asCFString()
     }
 
 }
 
-
 struct AudioDevice {
 
     static func getEveryObjectID() throws -> [AudioObjectID] {
-        try Property.everyObjectID.getDataAsArray(of: AudioObjectID.self, objectID: SystemObjectID)
+        let property = Property.everyObjectID(of: SystemObjectID)
+        return try property.getDataAsArray(of: AudioObjectID.self)
     }
-    
+
     static var all: [AudioDevice]? {
-        if let ids = try? Property.everyObjectID.getDataAsArray(of: AudioObjectID.self, objectID: SystemObjectID) {
+        if let ids = try? getEveryObjectID() {
             return ids.map({ AudioDevice(objectID: $0) })
         }
 
@@ -81,7 +90,9 @@ struct AudioDevice {
     let objectID: AudioObjectID
 
     var uid: String? {
-        if let data = try? Property.deviceUID.getDataAsCFString(objectID: objectID) {
+        let property = Property.deviceUID(of: objectID)
+
+        if let data = try? property.getDataAsCFString() {
             return String(data as NSString)
         }
 
@@ -89,7 +100,9 @@ struct AudioDevice {
     }
 
     var name: String? {
-        if let data = try? Property.deviceName.getDataAsCString(objectID: objectID) {
+        let property = Property.deviceName(of: objectID)
+
+        if let data = try? property.getDataAsCString() {
             return String(cString: data)
         }
 
@@ -107,40 +120,11 @@ enum MyError: Error {
     case Error(status: OSStatus)
 }
 
-func getPropertyDataSize(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> UInt32 {
-    var size: UInt32 = 0
-
-    let status = AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
-    guard status == noErr else {
-        throw MyError.Error(status: status)
-    }
-
-    return size
-}
-
-func getRawPropertyData(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
-    var size = try getPropertyDataSize(objectID: objectID, address: &address)
-
-    let data = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
-    let status = AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, data)
-
-    guard status == noErr else {
-        throw MyError.Error(status: status)
-    }
-
-    return (data, size)
-}
-
-func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
-    var address = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
-    let (data, size) = try getRawPropertyData(objectID: SystemObjectID, address: &address)
-
-    return data.asArray(size: size)
-}
+typealias CString = UnsafeMutablePointer<CChar>
 
 extension UnsafeMutableRawPointer {
 
-    func asArray<T>(size: UInt32, of: T.Type=T.self) -> [T] {
+    func asArray<T>(size: UInt32) -> [T] {
         let numberOfElements = Int(size) / MemoryLayout<T>.size
         let typedSelf = bindMemory(to: T.self, capacity: numberOfElements)
 
@@ -148,39 +132,14 @@ extension UnsafeMutableRawPointer {
         return (0 ..< numberOfElements).map({ typedSelf[$0] })
     }
 
-    func asString() -> String {
-        let typedSelf = bindMemory(to: CFString.self, capacity: 1)
-
-         // TODO: Check whether there is a nicer way of doing it
-        return String.init(typedSelf.pointee as NSString)
-    }
-
-    func asString2(size: UInt32) -> String {
-        let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
-        let typedSelf = bindMemory(to: CChar.self, capacity: numberOfCharacters)
-        return String.init(cString: typedSelf)
-    }
-    
-    func asCString(size: UInt32) -> UnsafeMutablePointer<CChar> {
+    func asCString(size: UInt32) -> CString {
         let numberOfCharacters = Int(size) / MemoryLayout<CChar>.size
         return bindMemory(to: CChar.self, capacity: numberOfCharacters)
     }
-    
+
     func asCFString() -> CFString {
         let typedSelf = bindMemory(to: CFString.self, capacity: 1)
         return typedSelf.pointee
     }
 
-}
-
-func getDeviceUID(objectID: AudioObjectID) throws -> String {
-    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
-    let (data, _) = try getRawPropertyData(objectID: objectID, address: &address)
-    return data.asString()
-}
-
-func getDeviceName(objectID: AudioObjectID) throws -> String {
-    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceName)
-    let (data, size) = try getRawPropertyData(objectID: objectID, address: &address)
-    return data.asString2(size: size)
 }
