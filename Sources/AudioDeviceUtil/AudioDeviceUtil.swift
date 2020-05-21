@@ -5,6 +5,83 @@ let DefaultScope = kAudioObjectPropertyScopeGlobal
 let DefaultElement = kAudioObjectPropertyElementMaster
 let SystemObjectID = AudioObjectID(kAudioObjectSystemObject)
 
+struct AudioDevice {
+
+    static let allObjectIDsPropertyAddress = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
+    static let uidPropertyAddress = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
+    static let namePropertyAddress = toPropertyAddress(selector: kAudioDevicePropertyDeviceName)
+
+    static func getPropertySize(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> UInt32 {
+        var size: UInt32 = 0
+
+        let status = AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
+        guard status == noErr else {
+            throw MyError.Error(status: status)
+        }
+
+        return size
+    }
+    
+    static func getProperty(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+        var size = try getPropertySize(objectID: objectID, address: &address)
+
+        let data = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 1)
+        let status = AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, data)
+
+        guard status == noErr else {
+            throw MyError.Error(status: status)
+        }
+
+        return (data, size)
+    }
+
+    static func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
+        var address = allObjectIDsPropertyAddress
+        let (data, size) = try getProperty(objectID: SystemObjectID, address: &address)
+
+        return data.asArray(size: size)
+    }
+    
+    static var all: [AudioDevice]? {
+        if let ids = try? getObjectIDOfEveryDevice() {
+            return ids.map({ AudioDevice(objectID: $0) })
+        }
+
+        return nil
+    }
+
+    let objectID: AudioObjectID
+
+    func getPropertySize(address: inout AudioObjectPropertyAddress) throws -> UInt32 {
+        try AudioDevice.getPropertySize(objectID: objectID, address: &address)
+    }
+
+    func getProperty(address: inout AudioObjectPropertyAddress) throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+        try AudioDevice.getProperty(objectID: objectID, address: &address)
+    }
+
+    var uid: String? {
+        var address = AudioDevice.uidPropertyAddress
+
+        if let (data, _) = try? getProperty(address: &address) {
+            return data.asString()
+        }
+
+        return nil
+    }
+
+    var name: String? {
+        var address = AudioDevice.namePropertyAddress
+
+        if let (data, size) = try? getProperty(address: &address) {
+            return data.asString2(size: size)
+        }
+
+        return nil
+    }
+
+}
+
 // When dealing with `AudioObjectProperty`s, `AudioObject` prefix is implicitly assumed
 func toPropertyAddress(selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
     AudioObjectPropertyAddress(mSelector: selector, mScope: DefaultScope, mElement: DefaultElement)
