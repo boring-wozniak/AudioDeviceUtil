@@ -2,7 +2,7 @@ import Foundation
 
 extension UnsafeMutableRawPointer {
 
-    func asArray<T>(size: UInt32) -> [T] {
+    func asArray<T>(of: T.Type=T.self, size: UInt32) -> [T] {
         let numberOfElements = Int(size) / MemoryLayout<T>.size
         let typedSelf = bindMemory(to: T.self, capacity: numberOfElements)
 
