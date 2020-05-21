@@ -18,9 +18,9 @@ final class AudioDeviceUtilTests: XCTestCase {
         XCTAssertTrue(result.count > 0)
     }
     
-    func testGetDeviceUID() {
-        let result = getDeviceUID(objectID: 79)
-        print(result)
+    func testGetDeviceUID() throws {
+        let result = try getDeviceUID(objectID: 79)
+        print("Device UID is '\(result)'")
     }
     
 //    func testGetPropertyDataSize() {

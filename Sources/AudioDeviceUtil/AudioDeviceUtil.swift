@@ -38,29 +38,34 @@ func getRawPropertyData(objectID: AudioObjectID, address: inout AudioObjectPrope
     return (data, size)
 }
 
-func getPropertyData<T>(objectID: AudioObjectID, address: inout AudioObjectPropertyAddress) throws -> [T] {
-    let (rawData, size) = try getRawPropertyData(objectID: objectID, address: &address)
-    defer {
-        rawData.deallocate()
-    }
-    let numberOfElements = Int(size) / MemoryLayout<T>.size
-    let typedData = rawData.bindMemory(to: T.self, capacity: numberOfElements)
-    return (0 ..< numberOfElements).map({ typedData[$0] })
-}
-
 func getObjectIDOfEveryDevice() throws -> [AudioObjectID] {
     var address = toPropertyAddress(selector: kAudioHardwarePropertyDevices)
-    return try getPropertyData(objectID: SystemObjectID, address: &address)
+    let (data, size) = try getRawPropertyData(objectID: SystemObjectID, address: &address)
+
+    return data.asArray(size: size)
 }
 
-func getDeviceUID(objectID: AudioObjectID) -> (uid: String?, status: OSStatus) {
-//    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
-//    let dataSizeResult = getPropertyDataSize(objectID: objectID, address: &address)
-//    if var dataSize = dataSizeResult.size {
-//        var dataResult = UnsafeMutablePointer<CFString>.allocate(capacity: Int(dataSize))
-//        let dataStatus = AudioObjectGetPropertyData(objectID, &address, 0, nil, &dataSize, &dataResult)
-//        return (dataStatus == noErr ? String.init(dataResult.pointee as NSString) : nil, dataStatus)
-//    }
-//    return (nil, dataSizeResult.status)
-    return (nil, noErr)
+extension UnsafeMutableRawPointer {
+
+    func asArray<T>(size: UInt32) -> [T] {
+        let numberOfElements = Int(size) / MemoryLayout<T>.size
+        let typedSelf = bindMemory(to: T.self, capacity: numberOfElements)
+
+         // TODO: Check whether there is a nicer way of doing it
+        return (0 ..< numberOfElements).map({ typedSelf[$0] })
+    }
+
+    func asString() -> String {
+        let typedSelf = bindMemory(to: CFString.self, capacity: 1)
+
+         // TODO: Check whether there is a nicer way of doing it
+        return String.init(typedSelf.pointee as NSString)
+    }
+
+}
+
+func getDeviceUID(objectID: AudioObjectID) throws -> String {
+    var address = toPropertyAddress(selector: kAudioDevicePropertyDeviceUID)
+    let (data, _) = try getRawPropertyData(objectID: objectID, address: &address)
+    return data.asString()
 }
