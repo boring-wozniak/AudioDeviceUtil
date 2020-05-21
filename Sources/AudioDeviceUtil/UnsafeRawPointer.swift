@@ -1,6 +1,6 @@
 import Foundation
 
-extension UnsafeMutableRawPointer {
+extension UnsafeRawPointer {
 
     func asArray<T>(of: T.Type=T.self, size: UInt32) -> [T] {
         let numberOfElements = Int(size) / MemoryLayout<T>.size

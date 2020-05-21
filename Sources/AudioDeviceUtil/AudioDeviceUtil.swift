@@ -4,4 +4,4 @@ enum MyError: Error {
     case Error(status: OSStatus)
 }
 
-typealias CString = UnsafeMutablePointer<CChar>
+typealias CString = UnsafePointer<CChar>

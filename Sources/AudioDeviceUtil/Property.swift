@@ -46,7 +46,7 @@ struct Property {
         return size
     }
 
-    func getRawData() throws -> (data: UnsafeMutableRawPointer, size: UInt32) {
+    func getRawData() throws -> (data: UnsafeRawPointer, size: UInt32) {
         var size = try getDataSize()
 
         var addressVar = address // ¯\_(ツ)_/¯
@@ -57,7 +57,7 @@ struct Property {
             throw MyError.Error(status: status)
         }
 
-        return (data, size)
+        return (UnsafeRawPointer(data), size)
     }
 
     func getDataAsArray<Element>(of: Element.Type) throws -> [Element] {
