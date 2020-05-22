@@ -1,6 +1,10 @@
 import CoreAudio
 import Foundation
 
+public func findDeviceUIDBy(name: String) throws -> String? {
+    try AudioDevice.findBy(name: name)?.uid
+}
+
 public struct AudioDevice {
 
     static func getEveryObjectID() throws -> [AudioObjectID] {
