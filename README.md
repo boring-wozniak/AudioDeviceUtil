@@ -14,7 +14,10 @@ guard let deviceUID = try findDeviceUIDBy(name: deviceName) else {
     fatalError("Cannot find a device with name '\(deviceName)'")
 }
 
+// This is exactly what this library is about :)
+// See https://stackoverflow.com/q/1983984 for more
 sound.playbackDeviceIdentifier = deviceUID
+
 if !sound.play() {
     fatalError("Cannot play the sound")
 }
