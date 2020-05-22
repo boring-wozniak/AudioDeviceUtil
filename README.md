@@ -25,3 +25,5 @@ if !sound.play() {
 // Wait until the playback finishes
 sleep(UInt32(sound.duration))
 ```
+## My grandma would write it better...🤬
+Please, [open the issue](https://github.com/boring-wozniak/AudioDeviceUtil/issues/new) and describe briefly what exactly is looking troublesome in the code, ideally, with links, references, etc... This is my first gig on the Swift territory so feedback from more experienced developers is very appreciated
