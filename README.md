@@ -1,4 +1,9 @@
 # AudioDeviceUtil
+## Installation
+```swift
+// In your Package.swift
+.package(url: "https://github.com/boring-wozniak/AudioDeviceUtil", from: "0.0.3"),
+```
 ## Usage Example
 ```swift
 import AppKit
