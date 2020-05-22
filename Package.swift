@@ -10,6 +10,9 @@ let package = Package(
         .library(
             name: "AudioDeviceUtil",
             targets: ["AudioDeviceUtil"]),
+        .executable(
+            name: "AudioDeviceID",
+            targets: ["AudioDeviceID"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -23,6 +26,9 @@ let package = Package(
             dependencies: []),
         .testTarget(
             name: "AudioDeviceUtilTests",
+            dependencies: ["AudioDeviceUtil"]),
+        .target(
+            name: "AudioDeviceID",
             dependencies: ["AudioDeviceUtil"]),
     ]
 )
