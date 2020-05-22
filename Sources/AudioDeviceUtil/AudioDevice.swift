@@ -1,14 +1,14 @@
 import CoreAudio
 import Foundation
 
-struct AudioDevice {
+public struct AudioDevice {
 
     static func getEveryObjectID() throws -> [AudioObjectID] {
         let property = Property.everyObjectID(of: SystemObjectID)
         return try property.getDataAsArray(of: AudioObjectID.self)
     }
 
-    static var all: [AudioDevice]? {
+    public static var all: [AudioDevice]? {
         if let ids = try? getEveryObjectID() {
             return ids.map({ AudioDevice(objectID: $0) })
         }
@@ -16,13 +16,13 @@ struct AudioDevice {
         return nil
     }
 
-    static func findBy(name: String) throws -> AudioDevice? {
+    public static func findBy(name: String) throws -> AudioDevice? {
         all?.first(where: { $0.name == name })
     }
 
-    let objectID: AudioObjectID
+    public let objectID: AudioObjectID
 
-    var uid: String? {
+    public var uid: String? {
         let property = Property.deviceUID(of: objectID)
 
         if let data = try? property.getDataAsCFString() {
@@ -32,7 +32,7 @@ struct AudioDevice {
         return nil
     }
 
-    var name: String? {
+    public var name: String? {
         let property = Property.deviceName(of: objectID)
 
         if let data = try? property.getDataAsCString() {
